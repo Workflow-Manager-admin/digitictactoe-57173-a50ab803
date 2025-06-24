@@ -1,297 +1,247 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
-  runApp(const TicTacToeApp());
+  runApp(const MyApp());
 }
 
 ///
 /// PUBLIC_INTERFACE
-/// The root widget for the Tic Tac Toe application.
-/// Applies a minimalistic light theme and launches the main game page.
+/// Main app entry point using custom color scheme and modern font.
 ///
-class TicTacToeApp extends StatelessWidget {
-  const TicTacToeApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
+  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final Color primaryColor = const Color(0xFF4A90E2); // cool blue
+    final Color secondaryColor = const Color(0xFF50E3C2); // soft teal
+    final Color accentColor = const Color(0xFFB8E986); // soft green
+    final Color backgroundColor = const Color(0xFFFAFAFA); // very light gray
+
     return MaterialApp(
       title: 'Tic Tac Toe',
-      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: const Color(0xFF1565C0), // Deep Blue
+        scaffoldBackgroundColor: backgroundColor,
         colorScheme: ColorScheme.light(
-          primary: const Color(0xFF1565C0), // Deep Blue
-          secondary: const Color(0xFFFDD835), // Yellow
+          primary: primaryColor,
+          secondary: secondaryColor,
           surface: Colors.white,
-          error: const Color(0xFFB00020),
+          // background and onBackground deprecated
+          error: Colors.redAccent,
           onPrimary: Colors.white,
           onSecondary: Colors.black87,
           onSurface: Colors.black87,
+          // onBackground deprecated
           onError: Colors.white,
         ),
-        useMaterial3: true,
-        textTheme: const TextTheme(
-          headlineMedium: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-          bodyLarge: TextStyle(fontSize: 18),
+        textTheme: GoogleFonts.montserratTextTheme().copyWith(
+          headlineLarge: GoogleFonts.montserrat(
+              fontSize: 38, fontWeight: FontWeight.bold, color: primaryColor),
+          headlineMedium: GoogleFonts.montserrat(
+              fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor),
+          titleLarge: GoogleFonts.montserrat(
+              fontSize: 24, fontWeight: FontWeight.w700, color: primaryColor),
+          titleMedium: GoogleFonts.montserrat(
+              fontSize: 19, fontWeight: FontWeight.w500, color: secondaryColor),
+          bodyLarge: GoogleFonts.montserrat(
+              fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black87),
+          bodyMedium: GoogleFonts.montserrat(
+              fontSize: 16, fontWeight: FontWeight.normal, color: Colors.black87),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1565C0),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(120, 44),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-            ),
+            backgroundColor: accentColor,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
+            textStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
+        appBarTheme: AppBarTheme(
+          color: primaryColor,
+          titleTextStyle: GoogleFonts.montserrat(
+              fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+          centerTitle: true,
+        ),
       ),
-      home: const TicTacToePage(),
+      home: const TicTacToeHomePage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
-
-/// Enum representing the two players
-enum Player { x, o }
-
-/// Helper function to convert Player enum to symbol string
-String playerSymbol(Player? player) =>
-    player == Player.x ? "X" : player == Player.o ? "O" : "";
 
 ///
 /// PUBLIC_INTERFACE
-/// Main Game Screen for Tic Tac Toe
+/// Main home page for Tic Tac Toe game, with minimalist modern look.
 ///
-class TicTacToePage extends StatefulWidget {
-  const TicTacToePage({super.key});
+class TicTacToeHomePage extends StatefulWidget {
+  const TicTacToeHomePage({super.key});
 
   @override
-  State<TicTacToePage> createState() => _TicTacToePageState();
+  State<TicTacToeHomePage> createState() => _TicTacToeHomePageState();
 }
 
-class _TicTacToePageState extends State<TicTacToePage> {
-  // 3x3 board, null when unoccupied; otherwise Player.x or Player.o.
-  List<Player?> board = List<Player?>.filled(9, null);
-  Player currentPlayer = Player.x;
-  String statusMessage = 'X\'s turn';
-  bool gameOver = false;
-  int? winningLine; // Index of the win pattern if any: 0..7
+class _TicTacToeHomePageState extends State<TicTacToeHomePage> {
+  static const int boardSize = 3;
+  List<List<String>> board = List.generate(boardSize, (_) => List.filled(boardSize, ''));
+  String currentPlayer = 'X';
+  String statusMessage = 'Player X starts!';
+  bool gameEnded = false;
 
-  /// Patterns: 3 in a row (by index positions on flattened grid)
-  static const List<List<int>> winPatterns = <List<int>>[
-    [0, 1, 2], // Row 0
-    [3, 4, 5], // Row 1
-    [6, 7, 8], // Row 2
-    [0, 3, 6], // Col 0
-    [1, 4, 7], // Col 1
-    [2, 5, 8], // Col 2
-    [0, 4, 8], // Diag
-    [2, 4, 6], // Diag
-  ];
+  void _handleTap(int row, int col) {
+    if (board[row][col].isEmpty && !gameEnded) {
+      setState(() {
+        board[row][col] = currentPlayer;
+        if (_checkWinner(currentPlayer)) {
+          statusMessage = 'Player $currentPlayer wins!';
+          gameEnded = true;
+        } else if (_isBoardFull()) {
+          statusMessage = 'Draw!';
+          gameEnded = true;
+        } else {
+          currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
+          statusMessage = "Player $currentPlayer's turn";
+        }
+      });
+    }
+  }
 
-  /// Resets the board for a new game.
-  // PUBLIC_INTERFACE
-  void newGame() {
+  void _resetGame() {
     setState(() {
-      board = List<Player?>.filled(9, null);
-      currentPlayer = Player.x;
-      gameOver = false;
-      statusMessage = 'X\'s turn';
-      winningLine = null;
+      board = List.generate(boardSize, (_) => List.filled(boardSize, ''));
+      currentPlayer = 'X';
+      statusMessage = 'Player X starts!';
+      gameEnded = false;
     });
   }
 
-  /// Handles a tap on the board at index [i]
-  void handleTap(int i) {
-    if (gameOver || board[i] != null) {
-      return;
-    }
-    setState(() {
-      board[i] = currentPlayer;
-      int? winResult = getWinner(board);
-      if (winResult != null) {
-        gameOver = true;
-        winningLine = winResult;
-        statusMessage =
-            '${playerSymbol(board[winPatterns[winResult][0]])} wins!';
-      } else if (board.every((cell) => cell != null)) {
-        // Draw
-        gameOver = true;
-        statusMessage = 'It\'s a draw!';
-      } else {
-        // Next turn
-        currentPlayer = currentPlayer == Player.x ? Player.o : Player.x;
-        statusMessage = '${playerSymbol(currentPlayer)}\'s turn';
-      }
-    });
+  bool _isBoardFull() {
+    return board.every((row) => row.every((cell) => cell.isNotEmpty));
   }
 
-  /// Returns the index of winning line if someone has won; otherwise null.
-  int? getWinner(List<Player?> b) {
-    for (int i = 0; i < winPatterns.length; i++) {
-      final a = winPatterns[i];
-      final Player? p = b[a[0]];
-      if (p != null && b[a[1]] == p && b[a[2]] == p) {
-        return i;
-      }
+  bool _checkWinner(String player) {
+    // Check rows and columns
+    for (int i = 0; i < boardSize; i++) {
+      if (board[i].every((cell) => cell == player)) return true;
+      if ([for (var row in board) row[i]].every((cell) => cell == player)) return true;
     }
-    return null;
-  }
 
-  /// Returns the appropriate border for each cell for a perfect 3x3 grid.
-  Border _getCellBorder(int index) {
-    int row = index ~/ 3;
-    int col = index % 3;
-    const borderColor = Colors.black54;
-    BorderSide thin = const BorderSide(color: borderColor, width: 1);
-    BorderSide none = BorderSide.none;
+    // Check diagonals
+    if ([for (int i = 0; i < boardSize; i++) board[i][i]].every((cell) => cell == player)) return true;
+    if ([for (int i = 0; i < boardSize; i++) board[i][boardSize - 1 - i]].every((cell) => cell == player))
+      return true;
 
-    return Border(
-      left: col == 0 ? none : thin,
-      top: row == 0 ? none : thin,
-      right: col == 2 ? none : thin,
-      bottom: row == 2 ? none : thin,
-    );
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorLightGrey = Colors.grey[200]!;
-
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Tic Tac Toe"),
+        title: Text('Tic Tac Toe',
+            style: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
-        backgroundColor: const Color(0xFF1565C0),
+        elevation: 2,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Status/result display
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text(
-                  statusMessage,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: statusMessage.contains("wins")
-                            ? const Color(0xFF1565C0)
-                            : (statusMessage.contains("draw")
-                                ? Color(0xFFFF7043)
-                                : Colors.black87),
-                      ),
+      backgroundColor: colors.surface,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Minimalist Tic Tac Toe',
+              style: theme.textTheme.headlineLarge!
+                  .copyWith(color: colors.primary, fontSize: 36),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              statusMessage,
+              style: theme.textTheme.titleLarge!.copyWith(
+                  color: colors.secondary, fontWeight: FontWeight.w700, fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: colors.primary.withAlpha(56), width: 3), // 0.22 * 255 ≈ 56
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primary.withAlpha(23), // 0.09 * 255 ≈ 23
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
-              ),
-              // Game board - Updated: consistent minimal grid with clear borders and tight layout
-              AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12.0),
-                  decoration: BoxDecoration(
-                    color: colorLightGrey,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      width: 2,
-                    ),
-                  ),
-                  child: GridView.builder(
-                    itemCount: 9,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                    ),
-                    padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, i) {
-                      bool highlight = false;
-                      if (winningLine != null &&
-                          winPatterns[winningLine!].contains(i)) {
-                        highlight = true;
-                      }
-                      return GestureDetector(
-                        onTap: () => handleTap(i),
-                        child: Container(
-                          // Removed unnecessary margin for tight grid alignment
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: _getCellBorder(i),
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 135),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.zero,
-                              border: highlight
-                                  ? Border.all(
-                                      color: const Color(0xFFFDD835),
-                                      width: 4,
-                                    )
-                                  : null,
-                            ),
-                            child: Center(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 170),
-                                transitionBuilder: (child, anim) =>
-                                    ScaleTransition(
-                                  scale: anim,
-                                  child: child,
+                child: Column(
+                  children: List.generate(boardSize, (row) {
+                    return Expanded(
+                      child: Row(
+                        children: List.generate(boardSize, (col) {
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => _handleTap(row, col),
+                              child: Container(
+                                margin: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: board[row][col].isEmpty
+                                      ? colors.surface
+                                      : colors.secondary.withAlpha(25), // 0.10 * 255 ≈ 25
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colors.secondary.withAlpha(92), // 0.36 * 255 ≈ 92
+                                    width: 2,
+                                  ),
                                 ),
-                                child: Text(
-                                  playerSymbol(board[i]),
-                                  key: ValueKey(board[i]),
-                                  style: TextStyle(
-                                    color: board[i] == Player.x
-                                        ? const Color(0xFF1565C0)
-                                        : board[i] == Player.o
-                                            ? const Color(0xFFFF7043)
-                                            : Colors.black54,
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.bold,
+                                child: Center(
+                                  child: Text(
+                                    board[row][col],
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 54,
+                                      fontWeight: FontWeight.bold,
+                                      color: board[row][col] == 'X'
+                                          ? colors.primary
+                                          : board[row][col] == 'O'
+                                              ? colors.secondary
+                                              : Colors.black26,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        }),
+                      ),
+                    );
+                  }),
                 ),
               ),
-              // Restart button
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text("New Game"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFDD835),
-                    foregroundColor: Colors.black87,
-                    elevation: 0,
-                  ),
-                  onPressed: newGame,
-                ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _resetGame,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.secondary,
+                foregroundColor: Colors.black,
+                shadowColor: colors.primary.withAlpha(46), // 0.18 * 255 ≈ 46
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 17),
+                textStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              // Credit footer
-              const SizedBox(height: 18),
-              const Text(
-                "By Kavia AI \u2014 Minimal Design",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black45,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
+              child: const Text('Restart'),
+            ),
+          ],
         ),
       ),
     );
