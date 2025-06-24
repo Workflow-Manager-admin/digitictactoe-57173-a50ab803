@@ -140,6 +140,22 @@ class _TicTacToePageState extends State<TicTacToePage> {
     return null;
   }
 
+  /// Returns the appropriate border for each cell for a perfect 3x3 grid.
+  Border _getCellBorder(int index) {
+    int row = index ~/ 3;
+    int col = index % 3;
+    const borderColor = Colors.black54;
+    BorderSide thin = const BorderSide(color: borderColor, width: 1);
+    BorderSide none = BorderSide.none;
+
+    return Border(
+      left: col == 0 ? none : thin,
+      top: row == 0 ? none : thin,
+      right: col == 2 ? none : thin,
+      bottom: row == 2 ? none : thin,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorLightGrey = Colors.grey[200]!;
@@ -171,11 +187,11 @@ class _TicTacToePageState extends State<TicTacToePage> {
                       ),
                 ),
               ),
-              // Game board
+              // Game board - Updated: consistent minimal grid with clear borders and tight layout
               AspectRatio(
                 aspectRatio: 1,
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 16.0),
+                  margin: const EdgeInsets.symmetric(vertical: 12.0),
                   decoration: BoxDecoration(
                     color: colorLightGrey,
                     borderRadius: BorderRadius.circular(18),
@@ -191,6 +207,7 @@ class _TicTacToePageState extends State<TicTacToePage> {
                       crossAxisCount: 3,
                     ),
                     padding: EdgeInsets.zero,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (context, i) {
                       bool highlight = false;
                       if (winningLine != null &&
@@ -200,35 +217,44 @@ class _TicTacToePageState extends State<TicTacToePage> {
                       return GestureDetector(
                         onTap: () => handleTap(i),
                         child: Container(
-                          margin: const EdgeInsets.all(6),
+                          // Removed unnecessary margin for tight grid alignment
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: highlight
-                                  ? const Color(0xFFFDD835)
-                                  : Colors.transparent,
-                              width: highlight ? 4 : 1,
-                            ),
+                            border: _getCellBorder(i),
+                            borderRadius: BorderRadius.zero,
                           ),
-                          child: Center(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 170),
-                              transitionBuilder: (child, anim) => ScaleTransition(
-                                scale: anim,
-                                child: child,
-                              ),
-                              child: Text(
-                                playerSymbol(board[i]),
-                                key: ValueKey(board[i]),
-                                style: TextStyle(
-                                  color: board[i] == Player.x
-                                      ? const Color(0xFF1565C0)
-                                      : board[i] == Player.o
-                                          ? const Color(0xFFFF7043)
-                                          : Colors.black54,
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 135),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.zero,
+                              border: highlight
+                                  ? Border.all(
+                                      color: const Color(0xFFFDD835),
+                                      width: 4,
+                                    )
+                                  : null,
+                            ),
+                            child: Center(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 170),
+                                transitionBuilder: (child, anim) =>
+                                    ScaleTransition(
+                                  scale: anim,
+                                  child: child,
+                                ),
+                                child: Text(
+                                  playerSymbol(board[i]),
+                                  key: ValueKey(board[i]),
+                                  style: TextStyle(
+                                    color: board[i] == Player.x
+                                        ? const Color(0xFF1565C0)
+                                        : board[i] == Player.o
+                                            ? const Color(0xFFFF7043)
+                                            : Colors.black54,
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -256,7 +282,7 @@ class _TicTacToePageState extends State<TicTacToePage> {
               // Credit footer
               const SizedBox(height: 18),
               const Text(
-                "By Kavia AI — Minimal Design",
+                "By Kavia AI \u2014 Minimal Design",
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.black45,
