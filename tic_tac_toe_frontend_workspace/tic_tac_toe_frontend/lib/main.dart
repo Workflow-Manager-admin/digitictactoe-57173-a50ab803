@@ -1,84 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const TicTacToeApp());
 }
 
-///
-/// PUBLIC_INTERFACE
-/// Main app entry point using custom color scheme and modern font.
-///
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class TicTacToeApp extends StatelessWidget {
+  const TicTacToeApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
+  // PUBLIC_INTERFACE
+  /// Build the MaterialApp with a light blue background scaffold color for the theme.
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = const Color(0xFF4A90E2); // cool blue
-    final Color secondaryColor = const Color(0xFF50E3C2); // soft teal
-    final Color accentColor = const Color(0xFFB8E986); // soft green
-    final Color backgroundColor = const Color(0xFFFAFAFA); // very light gray
-
     return MaterialApp(
       title: 'Tic Tac Toe',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: backgroundColor,
-        colorScheme: ColorScheme.light(
-          primary: primaryColor,
-          secondary: secondaryColor,
-          surface: Colors.white,
-          // background and onBackground deprecated
-          error: Colors.redAccent,
-          onPrimary: Colors.white,
-          onSecondary: Colors.black87,
-          onSurface: Colors.black87,
-          // onBackground deprecated
-          onError: Colors.white,
+        primaryColor: const Color(0xFF1565C0),
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          secondary: const Color(0xFFFDD835),
         ),
-        textTheme: GoogleFonts.montserratTextTheme().copyWith(
-          headlineLarge: GoogleFonts.montserrat(
-              fontSize: 38, fontWeight: FontWeight.bold, color: primaryColor),
-          headlineMedium: GoogleFonts.montserrat(
-              fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor),
-          titleLarge: GoogleFonts.montserrat(
-              fontSize: 24, fontWeight: FontWeight.w700, color: primaryColor),
-          titleMedium: GoogleFonts.montserrat(
-              fontSize: 19, fontWeight: FontWeight.w500, color: secondaryColor),
-          bodyLarge: GoogleFonts.montserrat(
-              fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black87),
-          bodyMedium: GoogleFonts.montserrat(
-              fontSize: 16, fontWeight: FontWeight.normal, color: Colors.black87),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accentColor,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-            textStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.bold),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-        ),
-        appBarTheme: AppBarTheme(
-          color: primaryColor,
-          titleTextStyle: GoogleFonts.montserrat(
-              fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-          centerTitle: true,
-        ),
+        scaffoldBackgroundColor: const Color(0xFFE3F2FD), // Light blue background
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const TicTacToeHomePage(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-///
-/// PUBLIC_INTERFACE
-/// Main home page for Tic Tac Toe game, with minimalist modern look.
-///
 class TicTacToeHomePage extends StatefulWidget {
-  const TicTacToeHomePage({super.key});
+  const TicTacToeHomePage({Key? key}) : super(key: key);
 
   @override
   State<TicTacToeHomePage> createState() => _TicTacToeHomePageState();
@@ -87,161 +37,198 @@ class TicTacToeHomePage extends StatefulWidget {
 class _TicTacToeHomePageState extends State<TicTacToeHomePage> {
   static const int boardSize = 3;
   List<List<String>> board = List.generate(boardSize, (_) => List.filled(boardSize, ''));
-  String currentPlayer = 'X';
-  String statusMessage = 'Player X starts!';
-  bool gameEnded = false;
+  bool xTurn = true;
+  String resultMessage = '';
+  bool gameOver = false;
 
-  void _handleTap(int row, int col) {
-    if (board[row][col].isEmpty && !gameEnded) {
+  // PUBLIC_INTERFACE
+  /// Resets the game board, turn, and results.
+  void _resetGame() {
+    setState(() {
+      board = List.generate(boardSize, (_) => List.filled(boardSize, ''));
+      xTurn = true;
+      resultMessage = '';
+      gameOver = false;
+    });
+  }
+
+  // PUBLIC_INTERFACE
+  /// Handles a tap on a board cell.
+  void _handleTap(int i, int j) {
+    if (board[i][j] == '' && !gameOver) {
       setState(() {
-        board[row][col] = currentPlayer;
-        if (_checkWinner(currentPlayer)) {
-          statusMessage = 'Player $currentPlayer wins!';
-          gameEnded = true;
-        } else if (_isBoardFull()) {
-          statusMessage = 'Draw!';
-          gameEnded = true;
+        board[i][j] = xTurn ? 'X' : 'O';
+        if (_checkWinner(i, j)) {
+          resultMessage = 'Player ${xTurn ? "X" : "O"} wins!';
+          gameOver = true;
+        } else if (_checkDraw()) {
+          resultMessage = 'It\'s a draw!';
+          gameOver = true;
         } else {
-          currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
-          statusMessage = "Player $currentPlayer's turn";
+          xTurn = !xTurn;
         }
       });
     }
   }
 
-  void _resetGame() {
-    setState(() {
-      board = List.generate(boardSize, (_) => List.filled(boardSize, ''));
-      currentPlayer = 'X';
-      statusMessage = 'Player X starts!';
-      gameEnded = false;
-    });
-  }
+  // PUBLIC_INTERFACE
+  /// Checks if the most recent move resulted in a win.
+  bool _checkWinner(int x, int y) {
+    final player = board[x][y];
 
-  bool _isBoardFull() {
-    return board.every((row) => row.every((cell) => cell.isNotEmpty));
-  }
+    // Check row
+    if (board[x].every((cell) => cell == player)) return true;
 
-  bool _checkWinner(String player) {
-    // Check rows and columns
-    for (int i = 0; i < boardSize; i++) {
-      if (board[i].every((cell) => cell == player)) return true;
-      if ([for (var row in board) row[i]].every((cell) => cell == player)) return true;
-    }
+    // Check column
+    if (List.generate(boardSize, (i) => board[i][y]).every((cell) => cell == player)) return true;
 
-    // Check diagonals
-    if ([for (int i = 0; i < boardSize; i++) board[i][i]].every((cell) => cell == player)) return true;
-    if ([for (int i = 0; i < boardSize; i++) board[i][boardSize - 1 - i]].every((cell) => cell == player))
+    // Check diagonal
+    if (x == y && List.generate(boardSize, (i) => board[i][i]).every((cell) => cell == player)) return true;
+
+    // Check anti-diagonal
+    if (x + y == boardSize - 1 &&
+        List.generate(boardSize, (i) => board[i][boardSize - 1 - i]).every((cell) => cell == player)) {
       return true;
+    }
 
     return false;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Tic Tac Toe',
-            style: GoogleFonts.montserrat(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
-        centerTitle: true,
-        elevation: 2,
+  // PUBLIC_INTERFACE
+  /// Checks if the game board is completely filled without a winner.
+  bool _checkDraw() {
+    for (var row in board) {
+      if (row.contains('')) return false;
+    }
+    return true;
+  }
+
+  // PUBLIC_INTERFACE
+  /// Builds the visual board grid UI.
+  Widget _buildBoard() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i < boardSize; i++)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (int j = 0; j < boardSize; j++) _buildCell(i, j),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // PUBLIC_INTERFACE
+  /// Builds a single board cell as a tappable widget.
+  Widget _buildCell(int i, int j) {
+    return GestureDetector(
+      onTap: () => _handleTap(i, j),
+      child: Container(
+        width: 80,
+        height: 80,
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: const Color(0xFF1565C0),
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            board[i][j],
+            style: TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+              color: board[i][j] == 'X'
+                  ? const Color(0xFF1565C0)
+                  : board[i][j] == 'O'
+                      ? const Color(0xFFFDD835)
+                      : Colors.transparent,
+              shadows: [
+                Shadow(
+                  blurRadius: 6,
+                  color: Colors.black.withAlpha((0.17 * 255).toInt()),
+                  offset: const Offset(2, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      backgroundColor: colors.surface,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Minimalist Tic Tac Toe',
-              style: theme.textTheme.headlineLarge!
-                  .copyWith(color: colors.primary, fontSize: 36),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              statusMessage,
-              style: theme.textTheme.titleLarge!.copyWith(
-                  color: colors.secondary, fontWeight: FontWeight.w700, fontSize: 22),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 28),
-            AspectRatio(
-              aspectRatio: 1,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: colors.primary.withAlpha(56), width: 3), // 0.22 * 255 ≈ 56
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withAlpha(23), // 0.09 * 255 ≈ 23
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  children: List.generate(boardSize, (row) {
-                    return Expanded(
-                      child: Row(
-                        children: List.generate(boardSize, (col) {
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () => _handleTap(row, col),
-                              child: Container(
-                                margin: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: board[row][col].isEmpty
-                                      ? colors.surface
-                                      : colors.secondary.withAlpha(25), // 0.10 * 255 ≈ 25
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: colors.secondary.withAlpha(92), // 0.36 * 255 ≈ 92
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    board[row][col],
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 54,
-                                      fontWeight: FontWeight.bold,
-                                      color: board[row][col] == 'X'
-                                          ? colors.primary
-                                          : board[row][col] == 'O'
-                                              ? colors.secondary
-                                              : Colors.black26,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _resetGame,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.secondary,
-                foregroundColor: Colors.black,
-                shadowColor: colors.primary.withAlpha(46), // 0.18 * 255 ≈ 46
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 17),
-                textStyle: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: const Text('Restart'),
+    );
+  }
+
+  // PUBLIC_INTERFACE
+  /// Displays the current game status or result.
+  Widget _buildStatus() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Text(
+        resultMessage.isEmpty
+            ? 'Turn: Player ${xTurn ? "X" : "O"}'
+            : resultMessage,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF1565C0),
+          shadows: [
+            Shadow(
+              blurRadius: 3,
+              color: Colors.black.withAlpha((0.12 * 255).toInt()),
+              offset: const Offset(1, 1),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // PUBLIC_INTERFACE
+  /// Button to restart the game.
+  Widget _buildRestartButton() {
+    return ElevatedButton(
+      onPressed: _resetGame,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1565C0),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+        textStyle: const TextStyle(fontSize: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 3,
+      ),
+      child: const Text('Restart Game'),
+    );
+  }
+
+  // PUBLIC_INTERFACE
+  /// Build method: wraps the body with the new light blue background, keeps controls visually clear.
+  @override
+  Widget build(BuildContext context) {
+    // Scaffold inherits the theme's scaffoldBackgroundColor (light blue).
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tic Tac Toe'),
+        backgroundColor: const Color(0xFF1565C0),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      // Main body area, center the content, leave implicit background as defined in theme.
+      body: Center(
+        child: Container(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatus(),
+              _buildBoard(),
+              const SizedBox(height: 24),
+              _buildRestartButton(),
+            ],
+          ),
         ),
       ),
     );
